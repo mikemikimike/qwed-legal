@@ -51,7 +51,7 @@ def test_blank_clause_fails_the_action_closed(monkeypatch, capsys, tmp_path):
     assert '"status": "invalid_input"' in output
 
 
-def test_unsupported_valid_clauses_keep_legacy_action_success(
+def test_unsupported_valid_clauses_fail_the_action_closed(
     monkeypatch, capsys, tmp_path
 ):
     exit_code, stdout, output = _run_action(
@@ -61,8 +61,8 @@ def test_unsupported_valid_clauses_keep_legacy_action_success(
         tmp_path,
     )
 
-    assert exit_code == 0
-    assert "All verifications PASSED" in stdout
+    assert exit_code == 1
+    assert "Verification FAILED" in stdout
     assert '"consistent": false' in output
     assert '"status": "heuristic_pass_limited"' in output
 

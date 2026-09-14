@@ -118,9 +118,9 @@ def main():
                 "conflicts": [(c[0], c[1], c[2]) for c in result.conflicts],
                 "message": result.message,
             }
-            # Preserve the legacy success behavior for valid clauses outside the
-            # heuristic vocabulary, while failing closed for actual failures.
-            if result.status in {"contradiction", "invalid_input"}:
+            # ClauseGuard is fail-closed: any result that is not consistent is
+            # not verified, including clauses outside its heuristic coverage.
+            if not result.consistent:
                 all_verified = False
             messages.append(result.message)
             print(result.message)
