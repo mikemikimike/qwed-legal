@@ -65,3 +65,16 @@ def test_unsupported_valid_clauses_keep_legacy_action_success(
     assert "All verifications PASSED" in stdout
     assert '"consistent": false' in output
     assert '"status": "heuristic_pass_limited"' in output
+
+
+def test_valid_single_clause_keeps_action_success(monkeypatch, capsys, tmp_path):
+    exit_code, stdout, output = _run_action(
+        ["Payment due upon receipt"],
+        monkeypatch,
+        capsys,
+        tmp_path,
+    )
+
+    assert exit_code == 0
+    assert "All verifications PASSED" in stdout
+    assert '"consistent": true' in output
