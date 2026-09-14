@@ -34,6 +34,7 @@ class ClauseResult(LegalDiagnosticsMixin):
     # status values:
     #   "consistent"                  — heuristic checks found no conflicts
     #   "contradiction"               — at least one conflict detected
+    #   "invalid_input"               — input is not a non-empty list of strings
     #   "heuristic_pass_limited"      — no propositions extracted; guard has no coverage
     #                                   consistent=False but NOT a detected contradiction
     verification_trace: list = field(default_factory=list)
@@ -81,32 +82,31 @@ class ClauseGuard:
     def __init__(self):
         """Initialize ClauseGuard."""
 
-    def _limited_coverage_result(self, reason: str) -> ClauseResult:
+    def _invalid_input_result(self, reason: str) -> ClauseResult:
         """Return an honest result when the input cannot be analyzed."""
         return ClauseResult(
             consistent=False,
             conflicts=[],
-            status="heuristic_pass_limited",
+            status="invalid_input",
             message=(
-                f"HEURISTIC_PASS (LIMITED COVERAGE): {reason} ClauseGuard only "
+                f"INVALID INPUT (LIMITED COVERAGE): {reason} ClauseGuard only "
                 "recognises termination, notice period, min-term, and exclusivity "
-                "patterns. The clauses may be consistent, but this guard cannot "
-                "confirm it — downstream consumers must not treat this as "
-                "verified consistency."
+                "patterns, so the input cannot be evaluated. Downstream consumers "
+                "must not treat this as verified consistency."
             ),
             verification_trace=[
                 VerificationStep(
                     step=STEP_RULE_IDENTIFIED,
-                    description="Clause input could not be fully analyzed.",
+                    description="Invalid clause input cannot be analyzed.",
                     inputs={"covered_propositions": 0},
-                    output="HEURISTIC INPUT VALIDATION",
+                    output="INVALID CLAUSE INPUT",
                     evidence_type=EVIDENCE_INFERRED,
                 ),
                 VerificationStep(
                     step=STEP_AMBIGUITY_NOTED,
-                    description="Invalid or empty input leaves clause coverage unresolved.",
+                    description="Invalid input leaves clause coverage unresolved.",
                     inputs={"reason": reason},
-                    output="UNSUPPORTED: limited heuristic coverage, not verified.",
+                    output="UNSUPPORTED: invalid input cannot be verified.",
                     evidence_type=EVIDENCE_UNSUPPORTED,
                 ),
             ],
@@ -123,14 +123,18 @@ class ClauseGuard:
             ClauseResult with consistency status and any detected conflicts
         """
         if not isinstance(clauses, list):
-            return self._limited_coverage_result(
+            return self._invalid_input_result(
                 "The clause input must be a list of strings."
             )
         if not clauses:
-            return self._limited_coverage_result("No clauses were provided.")
+            return self._invalid_input_result("No clauses were provided.")
         if any(not isinstance(clause, str) for clause in clauses):
-            return self._limited_coverage_result(
+            return self._invalid_input_result(
                 "Every clause must be a string."
+            )
+        if any(not clause.strip() for clause in clauses):
+            return self._invalid_input_result(
+                "Every clause must contain non-whitespace text."
             )
         if len(clauses) < 2:
             return ClauseResult(
