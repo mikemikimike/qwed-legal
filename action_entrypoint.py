@@ -118,9 +118,10 @@ def main():
                 "conflicts": [(c[0], c[1], c[2]) for c in result.conflicts],
                 "message": result.message,
             }
-            # heuristic_pass_limited = guard has no coverage, not a detected
-            # contradiction — do NOT fail CI for this case.
-            if result.status == "contradiction":
+            # A limited-coverage result is not a verified consistency result.
+            # Keep the distinction in the clause payload, but do not flatten it
+            # into a successful action outcome.
+            if not result.consistent:
                 all_verified = False
             messages.append(result.message)
             print(result.message)

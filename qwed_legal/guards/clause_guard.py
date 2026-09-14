@@ -81,6 +81,37 @@ class ClauseGuard:
     def __init__(self):
         """Initialize ClauseGuard."""
 
+    def _limited_coverage_result(self, reason: str) -> ClauseResult:
+        """Return an honest result when the input cannot be analyzed."""
+        return ClauseResult(
+            consistent=False,
+            conflicts=[],
+            status="heuristic_pass_limited",
+            message=(
+                f"HEURISTIC_PASS (LIMITED COVERAGE): {reason} ClauseGuard only "
+                "recognises termination, notice period, min-term, and exclusivity "
+                "patterns. The clauses may be consistent, but this guard cannot "
+                "confirm it — downstream consumers must not treat this as "
+                "verified consistency."
+            ),
+            verification_trace=[
+                VerificationStep(
+                    step=STEP_RULE_IDENTIFIED,
+                    description="Clause input could not be fully analyzed.",
+                    inputs={"covered_propositions": 0},
+                    output="HEURISTIC INPUT VALIDATION",
+                    evidence_type=EVIDENCE_INFERRED,
+                ),
+                VerificationStep(
+                    step=STEP_AMBIGUITY_NOTED,
+                    description="Invalid or empty input leaves clause coverage unresolved.",
+                    inputs={"reason": reason},
+                    output="UNSUPPORTED: limited heuristic coverage, not verified.",
+                    evidence_type=EVIDENCE_UNSUPPORTED,
+                ),
+            ],
+        )
+
     def check_consistency(self, clauses: List[str]) -> ClauseResult:
         """
         Check if a list of contract clauses are logically consistent.
@@ -91,6 +122,16 @@ class ClauseGuard:
         Returns:
             ClauseResult with consistency status and any detected conflicts
         """
+        if not isinstance(clauses, list):
+            return self._limited_coverage_result(
+                "The clause input must be a list of strings."
+            )
+        if not clauses:
+            return self._limited_coverage_result("No clauses were provided.")
+        if any(not isinstance(clause, str) for clause in clauses):
+            return self._limited_coverage_result(
+                "Every clause must be a string."
+            )
         if len(clauses) < 2:
             return ClauseResult(
                 consistent=True,
